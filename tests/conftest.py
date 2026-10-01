@@ -1,3 +1,8 @@
+import os
+
+# Settings needs a key at import time; tests never call the real API
+os.environ.setdefault("PLACES_API_KEY", "test-key")
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import pytest
