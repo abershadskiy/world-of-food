@@ -1,5 +1,0 @@
-from app.core.database import get_db
-
-def get_db_session():
-    session = get_db()
-    return session

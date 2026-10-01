@@ -1,5 +1,5 @@
 import statistics
-from typing import Counter
+from collections import Counter
 
 from sqlalchemy.orm import Session
 
@@ -20,11 +20,12 @@ def get_user_preferences(db: Session, user_id: int) -> UserPreferences:
         prices = []
         for visit in restaurant_visits:
             found_cuisines.update(visit.restaurant.cuisine)
-            prices.append(visit.restaurant.price_tier)
+            if visit.restaurant.price_tier >= 0:
+                prices.append(visit.restaurant.price_tier)
 
         return UserPreferences(
             top_cuisines=[c for c, _ in found_cuisines.most_common(3)],
-            price_tier=statistics.median(prices),
+            price_tier=round(statistics.median(prices)) if prices else -1,
             has_enough_data=True
         )
 
