@@ -1,4 +1,3 @@
-from _pydatetime import date
 from typing import Sequence
 
 from sqlalchemy import select
@@ -15,7 +14,7 @@ def create_visit(db: Session, user_id: int, visit_details: VisitCreate) -> Visit
     new_visit = Visit(
         user_id=user_id,
         restaurant_id=visit_details.restaurant_id,
-        date=visit_details.date or date.today(),
+        date=visit_details.date,
         rating=visit_details.rating,
         notes=visit_details.notes
     )
