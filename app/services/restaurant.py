@@ -10,23 +10,22 @@ from app.utils import db_helper
 
 
 def get_restaurants(db: Session, cuisine: str, location: str) -> list[Restaurant]:
-    db_results = db.scalars(select(Restaurant)).all()
-    db_results = [r for r in db_results if cuisine in r.cuisine]
+    all_saved = db.scalars(select(Restaurant)).all()
+    db_results = [r for r in all_saved if cuisine in r.cuisine]
 
     remaining = max(0, 10 - len(db_results))
-
     if remaining == 0:
-        place_results = []
-    else:
-        place_results = [_place_to_restaurant(place, cuisine) for place in
-                         places_client.search_restaurants(cuisine, location, remaining).places]
-        db_helper.save_all(db, *place_results)
+        return db_results
 
-    return list(db_results) + list(place_results)
+    saved_ids = {r.place_id for r in all_saved}
+    places = places_client.search_restaurants(cuisine, location, remaining).places
 
+    # Places can return restaurants we already saved (e.g. under another cuisine)
+    new_restaurants = [_place_to_restaurant(p, cuisine) for p in places if p.id not in saved_ids]
+    db_helper.save_all(db, *new_restaurants)
 
-
-
+    already_saved = [r for r in all_saved if r.place_id in {p.id for p in places} and r not in db_results]
+    return db_results + already_saved + new_restaurants
 
 
 # Helpers
