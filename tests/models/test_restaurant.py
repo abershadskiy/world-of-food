@@ -6,7 +6,7 @@ import uuid
 
 def insert_restaurants(n, db_session):
     for i in range(0, n):
-        db_session.add(Restaurant(name=f"Test Restaurant #{i}", cuisine="French", place_id=str(uuid.uuid4()),
+        db_session.add(Restaurant(name=f"Test Restaurant #{i}", cuisine=["french"], place_id=str(uuid.uuid4()),
                                   place_lat=float(random()), place_long=float(random())))
     db_session.commit()
 
