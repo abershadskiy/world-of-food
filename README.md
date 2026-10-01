@@ -46,3 +46,11 @@ PLACES_API_KEY=your-key-here
 ```
 pytest
 ```
+
+
+## AI Usage
+
+I tried to keep AI usage to a minimum for this project since the goal was not to create a production-ready app but
+to learn Python and common frameworks. However, AI is a great learning tool so it was leveraged throughout the build
+of this app. Any agentic code changes were made through a Socratic interrogation and validated by me before being 
+committed.
