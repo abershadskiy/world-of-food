@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from app.dto.place import Place
+from app.models import Visit
 from app.models.restaurant import Restaurant
 from app.core.dependencies import places_client
 from app.utils import db_helper
