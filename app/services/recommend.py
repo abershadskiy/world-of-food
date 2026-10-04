@@ -3,6 +3,7 @@ from collections import Counter
 
 from sqlalchemy.orm import Session
 
+from app.models import Restaurant, Visit
 from app.models.preference import UserPreferences
 from app.services import visit as visit_service
 
@@ -29,6 +30,8 @@ def get_user_preferences(db: Session, user_id: int) -> UserPreferences:
             has_enough_data=True
         )
 
-
+def _remove_visited(restaurants: list[Restaurant], visits: list[Visit]) -> list[Restaurant]:
+    visited_ids = {v.restaurant_id for v in visits}
+    return list(filter(lambda r: r.id not in visited_ids, restaurants))
 
 
