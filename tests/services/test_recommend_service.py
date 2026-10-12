@@ -48,3 +48,11 @@ class TestRemoveVisited:
     def test_removes_visited_from_restaurants(self, restaurants):
         visit = make_visit(restaurant_id=restaurants[0].id)
         assert recommend._remove_visited(restaurants, [visit]) == restaurants[1:]
+
+    def test_returns_no_restaurants_if_all_visited(self, restaurants):
+        visits = [make_visit(restaurant_id=r.id) for r in restaurants]
+        assert recommend._remove_visited(restaurants, visits) == []
+
+    def test_returns_restaurants_unfiltered_if_visits_unrelated(self, restaurants):
+        unrelated_visit = make_visit(restaurant_id=999)
+        assert recommend._remove_visited(restaurants, [unrelated_visit]) == restaurants

@@ -1,27 +1,23 @@
-"""
-Data model — matches the plan:
+from typing import Optional
 
-  Restaurant: id, name, cuisine, price_tier, city, notes
-  Visit:      id, restaurant_id, date, rating, notes
-"""
-
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Float, JSON
-from sqlalchemy.orm import relationship
+from sqlalchemy import JSON
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.models import Visit
 
 
 class Restaurant(Base):
     __tablename__ = "restaurants"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False, index=True)
-    cuisine = Column(JSON, nullable=False, index=True)
-    price_tier = Column(Integer, nullable=True)  # e.g. 1 ($) - 4 ($$$$)
-    place_id = Column(String, nullable=False, unique=True)
-    place_lat = Column(Float, nullable=False)
-    place_long = Column(Float, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(index=True)
+    cuisine: Mapped[list[str]] = mapped_column(JSON, index=True)
+    price_tier: Mapped[Optional[int]]  # e.g. 1 ($) - 4 ($$$$)
+    place_id: Mapped[str] = mapped_column(unique=True)
+    place_lat: Mapped[float]
+    place_long: Mapped[float]
 
-    visits = relationship(
-        "Visit", back_populates="restaurant", cascade="all, delete-orphan"
+    visits: Mapped[list[Visit]] = relationship(
+        back_populates="restaurant", cascade="all, delete-orphan"
     )

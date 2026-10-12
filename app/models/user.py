@@ -1,12 +1,12 @@
-from sqlalchemy import Column, Integer
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.models import Visit
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
-    visits = relationship("Visit", back_populates="user")
+    visits: Mapped[list[Visit]] = relationship(back_populates="user")
