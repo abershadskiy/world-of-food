@@ -1,9 +1,15 @@
 import datetime
 import itertools
 
-from app.models import Restaurant, Visit
+from app.models import Restaurant, User, Visit
 
 _ids = itertools.count(1)
+
+
+def make_user(**overrides) -> User:
+    fields = {"email": f"user{next(_ids)}@example.com"}
+    fields.update(overrides)
+    return User(**fields)
 
 
 def make_restaurant(**overrides) -> Restaurant:

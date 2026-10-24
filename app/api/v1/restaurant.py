@@ -3,13 +3,15 @@ from typing import Sequence, Optional
 from fastapi import Depends, APIRouter
 from sqlalchemy.orm import Session
 
+from app.core.dependencies import get_current_user
 from app.dto.restaurant import Restaurant
 from app.services import restaurant
 from app.core.database import get_db
 
 router = APIRouter(
     prefix="/restaurants",
-    tags=["restaurants"]
+    tags=["restaurants"],
+    dependencies=[Depends(get_current_user)]
 )
 
 

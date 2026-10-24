@@ -7,11 +7,11 @@ from app.dto.place import Place, PlaceResults
 from app.models import Restaurant, User, Visit
 from app.models.recommendation import Action
 from app.services import recommend
-from tests.factories import make_restaurant, make_visit
+from tests.factories import make_restaurant, make_user, make_visit
 
 
 def add_visits(db, tiers):
-    user = User()
+    user = make_user()
     db.add(user)
     db.commit()
     for i, tier in enumerate(tiers):
@@ -86,7 +86,7 @@ def make_place(place_id):
 
 @pytest.fixture
 def user_id(db_session):
-    user = User()
+    user = make_user()
     db_session.add(user)
     db_session.commit()
     return user.id

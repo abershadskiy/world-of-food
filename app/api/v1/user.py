@@ -7,20 +7,14 @@ from app.core.database import get_db
 from app.core.dependencies import get_user_or_404
 from app.dto.preference import UserPreferences
 from app.dto.recommendation import Recommendation, RecommendationAction
-from app.dto.user import User
 from app.dto.visit import VisitCreate, Visit
 from app.models import User as UserModel
-from app.services import user, visit, recommend
+from app.services import visit, recommend
 
 router = APIRouter(
     prefix="/users",
     tags=["users"]
 )
-
-
-@router.post("/new", response_model=User)
-def create_user(db: Session = Depends(get_db)):
-    return user.add_user(db)
 
 
 @router.post("/{user_id}/visits", response_model=Visit)
