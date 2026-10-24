@@ -25,19 +25,29 @@ class PlacesClient:
     def _search(self, text_query: str, page_size: int, price_levels: list[str]) -> PlaceResults:
         headers = {
             "X-Goog-Api-Key": self.api_key,
-            "X-Goog-FieldMask": "places.displayName,places.id,places.priceLevel,places.location,places.types"
+            "X-Goog-FieldMask": "places.displayName,places.id,places.priceLevel,places.location,places.types,"
+                                "places.formattedAddress,places.addressComponents"
         }
+        # No includedType: it only takes one type, and bars, cafes and bakeries count too
         request_content = {
             "textQuery": text_query,
-            "pageSize": page_size,
-            "includedType": "restaurant"
+            "pageSize": page_size
         }
         if price_levels:
             request_content["priceLevels"] = price_levels
         response = httpx.post(self.base_url, headers=headers, json=request_content, timeout=10)
         response.raise_for_status()
 
-        return PlaceResults.model_validate(response.json())
+        results = PlaceResults.model_validate(response.json())
+        results.places = [p for p in results.places if _serves_food(p.types)]
+        return results
+
+
+FOOD_TYPES = {"restaurant", "food", "cafe", "coffee_shop", "bar", "pub", "bakery", "meal_takeaway", "meal_delivery",
+              "food_court"}
+
+def _serves_food(types: list[str]) -> bool:
+    return any(t in FOOD_TYPES or t.endswith("_restaurant") for t in types)
 
 
 def _price_levels_near(price_tier: int) -> list[str]:

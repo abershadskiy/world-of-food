@@ -12,7 +12,7 @@ from app.utils import db_helper
 
 def get_restaurants(db: Session, cuisine: str, location: str) -> list[Restaurant]:
     all_saved = db.scalars(select(Restaurant)).all()
-    matching = [r for r in all_saved if cuisine in r.cuisine]
+    matching = [r for r in all_saved if cuisine in r.cuisine and _in_location(r, location)]
 
     remaining = max(0, 10 - len(matching))
     if remaining == 0:
@@ -21,13 +21,13 @@ def get_restaurants(db: Session, cuisine: str, location: str) -> list[Restaurant
     places = places_client.search_restaurants([cuisine], location, remaining).places
 
     results = list(matching)
-    for restaurant in save_places(db, places, [cuisine]):
+    for restaurant in save_places(db, places):
         if restaurant not in results:
             results.append(restaurant)
     return results
 
 
-def save_places(db: Session, places: list[Place], fallback_cuisines: list[str]) -> list[Restaurant]:
+def save_places(db: Session, places: list[Place]) -> list[Restaurant]:
     # Places can return restaurants we already saved (e.g. under another cuisine),
     # so only create rows for the ones we haven't seen
     place_ids = [p.id for p in places]
@@ -35,7 +35,7 @@ def save_places(db: Session, places: list[Place], fallback_cuisines: list[str]) 
         r.place_id: r for r in db.scalars(select(Restaurant).where(Restaurant.place_id.in_(place_ids)))
     }
     new_restaurants = {
-        place.id: _place_to_restaurant(place, fallback_cuisines)
+        place.id: _place_to_restaurant(place)
         for place in places
         if place.id not in saved_by_place_id
     }
@@ -47,23 +47,38 @@ def save_places(db: Session, places: list[Place], fallback_cuisines: list[str]) 
 
 # Helpers
 
-def _place_to_restaurant(place: Place, fallback_cuisines: list[str]) -> Restaurant:
+def _place_to_restaurant(place: Place) -> Restaurant:
     return Restaurant(
         place_id=place.id,
-        cuisine=_extract_cuisines(place.types, fallback_cuisines),
+        cuisine=_extract_cuisines(place.types),
         price_tier=_tier_to_number(place.price_level),
         place_long=place.location.longitude,
         place_lat=place.location.latitude,
-        name=place.display_name.text
+        name=place.display_name.text,
+        address=place.formatted_address,
+        city=_address_part(place, "locality"),
+        region=_address_part(place, "administrative_area_level_1"),
+        country=_address_part(place, "country")
     )
 
 
-def _extract_cuisines(types: list[str], fallback_cuisines: list[str]) -> list[str]:
-    restaurant_types = [t for t in types if t.endswith("_restaurant")]
-    if not restaurant_types:
-        return fallback_cuisines
-    else:
-        return [rt.removesuffix("_restaurant") for rt in restaurant_types]
+def _extract_cuisines(types: list[str]) -> list[str]:
+    # No cuisine type means we don't know it. Guessing from the search text saved names as cuisines.
+    return [t.removesuffix("_restaurant") for t in types if t.endswith("_restaurant")]
+
+
+def _address_part(place: Place, part_type: str) -> str | None:
+    for component in place.address_components:
+        if part_type in component.types:
+            return component.long_text
+    return None
+
+
+def _in_location(restaurant: Restaurant, location: str) -> bool:
+    # "Boston, MA" -> "boston". Matches a city, a state/region or a whole country.
+    searched = location.split(",")[0].strip().lower()
+    parts = [restaurant.city, restaurant.region, restaurant.country]
+    return searched in [p.lower() for p in parts if p]
 
 
 def _tier_to_number(tier: PriceLevel) -> int:

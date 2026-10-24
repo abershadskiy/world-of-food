@@ -31,15 +31,22 @@ class Location(CamelCaseModel):
     latitude: float
     longitude: float
 
+class AddressComponent(CamelCaseModel):
+    long_text: str
+    types: list[str]
+
 class Place(CamelCaseModel):
     display_name: DisplayName
     id: str
     price_level: PriceLevel = PriceLevel.PRICE_LEVEL_UNSPECIFIED
     location: Location
     types: list[str]
+    formatted_address: str | None = None
+    address_components: list[AddressComponent] = []
 
 class PlaceResult(CamelCaseModel):
     place: Place
 
 class PlaceResults(CamelCaseModel):
-    places: list[Place]
+    # Places sends {} instead of an empty list when nothing matches
+    places: list[Place] = []

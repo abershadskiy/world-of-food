@@ -104,7 +104,7 @@ def _find_candidates(db: Session, preferences: UserPreferences, location: str) -
     else:
         places = places_client.search_default_restaurants(location, RECOMMENDATION_COUNT).places
     # We don't know which cuisine a place matched, so an unlabeled place gets no cuisine
-    return restaurant_service.save_places(db, places, [])
+    return restaurant_service.save_places(db, places)
 
 
 def _remove_visited(restaurants: list[Restaurant], visits: list[Visit]) -> list[Restaurant]:

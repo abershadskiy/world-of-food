@@ -57,6 +57,13 @@ class TestVisitsApi:
         assert response.json()["rating"] == 5
         assert response.json()["notes"] == "ok"
 
+    def test_date_cannot_be_cleared(self, client, user, visit):
+        url, headers = user
+
+        response = client.patch(f"{url}/visits/{visit['id']}", json={"date": None}, headers=headers)
+
+        assert response.status_code == 422
+
     def test_delete_visit(self, client, user, visit):
         url, headers = user
 
