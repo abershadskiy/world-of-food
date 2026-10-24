@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str | None = None
     # Where the UI is served from during development
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    # Local SQLite file by default. In production this is the Supabase Postgres URL.
+    DATABASE_URL: str = "sqlite:///./restaurant_tracker.db"
 
     model_config = SettingsConfigDict(
         env_file=".env.local",

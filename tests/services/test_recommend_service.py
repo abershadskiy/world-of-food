@@ -134,6 +134,23 @@ class TestRefreshRecommendations:
 
         assert places_client.calls == [("default", "Boston")]
 
+    def test_only_returns_this_searchs_recommendations(self, db_session, user_id, places_client):
+        recommend.refresh_recommendations(db_session, user_id, "Tokyo")
+        places_client.places = [make_place("d"), make_place("e")]
+
+        recs = recommend.refresh_recommendations(db_session, user_id, "Boston")
+
+        assert {r.restaurant.place_id for r in recs} == {"d", "e"}
+
+    def test_repeat_search_returns_its_earlier_pending_recommendations(self, db_session, user_id, places_client):
+        first = recommend.refresh_recommendations(db_session, user_id, "Boston")
+        places_client.places = [make_place("a"), make_place("d")]
+
+        recs = recommend.refresh_recommendations(db_session, user_id, "Boston")
+
+        assert {r.restaurant.place_id for r in recs} == {"a", "d"}
+        assert recs[0] == first[0]
+
     def test_with_enough_visits_searches_by_preferences(self, db_session, places_client):
         user_id = add_visits(db_session, [2, 2, 2, 2, 2])
 
@@ -164,6 +181,15 @@ class TestGetRecommendations:
         assert first not in recs
         assert len(recs) == 2
 
+    def test_filters_by_action(self, db_session, user_id, places_client):
+        recs = recommend.refresh_recommendations(db_session, user_id, "Boston")
+        recommend.set_recommendation_action(db_session, user_id, recs[0].id, Action.LIKE)
+        recommend.set_recommendation_action(db_session, user_id, recs[1].id, Action.REJECT)
+
+        assert recommend.get_recommendations(db_session, user_id, Action.LIKE) == [recs[0]]
+        assert recommend.get_recommendations(db_session, user_id, Action.REJECT) == [recs[1]]
+        assert recommend.get_recommendations(db_session, user_id, Action.MEH) == []
+
 
 class TestSetRecommendationAction:
     def test_sets_action_and_timestamp(self, db_session, user_id, places_client):
@@ -173,6 +199,16 @@ class TestSetRecommendationAction:
 
         assert updated.action == Action.MEH
         assert updated.action_timestamp is not None
+
+    def test_none_undoes_the_action(self, db_session, user_id, places_client):
+        rec = recommend.refresh_recommendations(db_session, user_id, "Boston")[0]
+        recommend.set_recommendation_action(db_session, user_id, rec.id, Action.LIKE)
+
+        undone = recommend.set_recommendation_action(db_session, user_id, rec.id, None)
+
+        assert undone.action is None
+        assert undone.action_timestamp is None
+        assert rec in recommend.get_recommendations(db_session, user_id)
 
     def test_other_users_recommendation_is_404(self, db_session, user_id, places_client):
         rec = recommend.refresh_recommendations(db_session, user_id, "Boston")[0]

@@ -38,19 +38,23 @@ def get_user_preferences(db: Session, user_id: int) -> UserPreferences:
             has_enough_data=True
         )
 
-def get_recommendations(db: Session, user_id: int) -> list[Recommendation]:
-    """Recommendations the user hasn't acted on and hasn't visited. Doesn't call Places."""
+def get_recommendations(db: Session, user_id: int, action: Action | None = None) -> list[Recommendation]:
+    """Recommendations with the given action (pending ones when None) that the user hasn't visited. Doesn't call Places."""
     visited_ids = {v.restaurant_id for v in visit_service.get_visits(db, user_id)}
-    pending = db.scalars(
+    if action is None:
+        action_filter = Recommendation.action.is_(None)
+    else:
+        action_filter = Recommendation.action == action
+    recommendations = db.scalars(
         select(Recommendation)
-        .where(Recommendation.user_id == user_id, Recommendation.action.is_(None))
+        .where(Recommendation.user_id == user_id, action_filter)
         .order_by(Recommendation.id)
     ).all()
-    return [r for r in pending if r.restaurant_id not in visited_ids]
+    return [r for r in recommendations if r.restaurant_id not in visited_ids]
 
 
 def refresh_recommendations(db: Session, user_id: int, location: str) -> list[Recommendation]:
-    """Searches Places for new restaurants, saves them as recommendations, returns all pending ones."""
+    """Searches Places for new restaurants, saves them as recommendations, returns the pending ones from this search."""
     preferences = get_user_preferences(db, user_id)
     visits = visit_service.get_visits(db, user_id)
 
@@ -65,10 +69,20 @@ def refresh_recommendations(db: Session, user_id: int, location: str) -> list[Re
     ]
     db_helper.save_all(db, *new)
 
-    return get_recommendations(db, user_id)
+    candidate_ids = [r.id for r in candidates]
+    return list(db.scalars(
+        select(Recommendation)
+        .where(
+            Recommendation.user_id == user_id,
+            Recommendation.restaurant_id.in_(candidate_ids),
+            Recommendation.action.is_(None)
+        )
+        .order_by(Recommendation.id)
+    ).all())
 
 
-def set_recommendation_action(db: Session, user_id: int, recommendation_id: int, action: Action) -> Recommendation:
+def set_recommendation_action(db: Session, user_id: int, recommendation_id: int, action: Action | None) -> Recommendation:
+    """Sets the action, or clears it when None so the recommendation is pending again."""
     recommendation = db.scalars(
         select(Recommendation).where(Recommendation.id == recommendation_id, Recommendation.user_id == user_id)
     ).first()
@@ -76,7 +90,7 @@ def set_recommendation_action(db: Session, user_id: int, recommendation_id: int,
         raise HTTPException(status_code=404, detail=f"Recommendation {recommendation_id} not found")
 
     recommendation.action = action
-    recommendation.action_timestamp = datetime.now()
+    recommendation.action_timestamp = datetime.now() if action is not None else None
     db.commit()
     db.refresh(recommendation)
     return recommendation

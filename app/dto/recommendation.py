@@ -16,4 +16,5 @@ class Recommendation(BaseModel):
 
 
 class RecommendationAction(BaseModel):
-    action: Action
+    # Required, but null is allowed: it undoes the action
+    action: Optional[Action]

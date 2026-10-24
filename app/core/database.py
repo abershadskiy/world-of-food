@@ -1,20 +1,22 @@
 """
-SQLite + SQLAlchemy engine/session setup.
+SQLAlchemy engine/session setup.
 
-SQLite is used deliberately here (see project plan: "skip Postgres setup
-overhead for a weekend"). If you outgrow this later, only this file needs
-to change — swap SQLALCHEMY_DATABASE_URL for a Postgres URL.
+Uses settings.DATABASE_URL: a local SQLite file in development,
+Postgres (Supabase) in production.
 """
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./restaurant_tracker.db"
+from app.core.config import settings
 
 # check_same_thread=False is required for SQLite + FastAPI's threaded requests.
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+# Postgres doesn't accept that option, so only pass it for SQLite.
+connect_args = {}
+if settings.DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+
+engine = create_engine(settings.DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 class Base(DeclarativeBase):
