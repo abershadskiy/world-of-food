@@ -4,6 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
+from app.dto.restaurant import Restaurant
 
 
 class VisitBase(BaseModel):
@@ -19,4 +20,5 @@ class VisitCreate(VisitBase):
 
 class Visit(VisitBase):
     id: int
+    restaurant: Restaurant
     model_config = ConfigDict(from_attributes=True)

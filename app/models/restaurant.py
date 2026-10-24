@@ -4,8 +4,6 @@ from sqlalchemy import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.models import Visit
-
 
 class Restaurant(Base):
     __tablename__ = "restaurants"
@@ -18,6 +16,9 @@ class Restaurant(Base):
     place_lat: Mapped[float]
     place_long: Mapped[float]
 
-    visits: Mapped[list[Visit]] = relationship(
+    visits: Mapped[list["Visit"]] = relationship(
+        back_populates="restaurant", cascade="all, delete-orphan"
+    )
+    recommendations: Mapped[list["Recommendation"]] = relationship(
         back_populates="restaurant", cascade="all, delete-orphan"
     )

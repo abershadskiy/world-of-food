@@ -1,24 +1,30 @@
+import datetime
 import enum
-from dataclasses import dataclass
 from typing import Optional
 
-from sqlalchemy import Integer, String, Column, Enum, TIMESTAMP
+from sqlalchemy import UniqueConstraint, ForeignKey
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from app.core.database import Base
+from app.models.restaurant import Restaurant
+from app.models.user import User
+
 
 class Action(enum.Enum):
     LIKE = "like"
     MEH = "meh"
     REJECT = "reject"
 
+
 class Recommendation(Base):
     __tablename__ = "recommendations"
+    __table_args__ = (UniqueConstraint("user_id", "restaurant_id"),)
 
-    id = Column(Integer, primary_key=True, index=True)
-    restaurant_id = Column(String, nullable=False, unique=True)
-    action = Column(Enum, nullable=True)
-    action_timestamp = Column(TIMESTAMP)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    restaurant_id: Mapped[int] = mapped_column(ForeignKey("restaurants.id"))
+    action: Mapped[Optional[Action]]
+    action_timestamp: Mapped[Optional[datetime.datetime]]
 
-    visits = relationship(
-        "Visit", back_populates="restaurant", cascade="all, delete-orphan"
-    )
+    user: Mapped[User] = relationship(back_populates="recommendations")
+    restaurant: Mapped[Restaurant] = relationship(back_populates="recommendations")

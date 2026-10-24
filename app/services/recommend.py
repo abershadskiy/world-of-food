@@ -1,11 +1,19 @@
 import statistics
 from collections import Counter
+from datetime import datetime
 
+from fastapi import HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Restaurant, Visit
+from app.core.dependencies import places_client
+from app.models import Recommendation, Restaurant, Visit
 from app.models.preference import UserPreferences
-from app.services import visit as visit_service
+from app.models.recommendation import Action
+from app.services import restaurant as restaurant_service, visit as visit_service
+from app.utils import db_helper
+
+RECOMMENDATION_COUNT = 10
 
 
 def get_user_preferences(db: Session, user_id: int) -> UserPreferences:
@@ -29,6 +37,61 @@ def get_user_preferences(db: Session, user_id: int) -> UserPreferences:
             price_tier=round(statistics.median(prices)) if prices else -1,
             has_enough_data=True
         )
+
+def get_recommendations(db: Session, user_id: int) -> list[Recommendation]:
+    """Recommendations the user hasn't acted on and hasn't visited. Doesn't call Places."""
+    visited_ids = {v.restaurant_id for v in visit_service.get_visits(db, user_id)}
+    pending = db.scalars(
+        select(Recommendation)
+        .where(Recommendation.user_id == user_id, Recommendation.action.is_(None))
+        .order_by(Recommendation.id)
+    ).all()
+    return [r for r in pending if r.restaurant_id not in visited_ids]
+
+
+def refresh_recommendations(db: Session, user_id: int, location: str) -> list[Recommendation]:
+    """Searches Places for new restaurants, saves them as recommendations, returns all pending ones."""
+    preferences = get_user_preferences(db, user_id)
+    visits = visit_service.get_visits(db, user_id)
+
+    already_recommended = set(
+        db.scalars(select(Recommendation.restaurant_id).where(Recommendation.user_id == user_id))
+    )
+    candidates = _remove_visited(_find_candidates(db, preferences, location), visits)
+    new = [
+        Recommendation(user_id=user_id, restaurant_id=r.id)
+        for r in candidates
+        if r.id not in already_recommended
+    ]
+    db_helper.save_all(db, *new)
+
+    return get_recommendations(db, user_id)
+
+
+def set_recommendation_action(db: Session, user_id: int, recommendation_id: int, action: Action) -> Recommendation:
+    recommendation = db.scalars(
+        select(Recommendation).where(Recommendation.id == recommendation_id, Recommendation.user_id == user_id)
+    ).first()
+    if recommendation is None:
+        raise HTTPException(status_code=404, detail=f"Recommendation {recommendation_id} not found")
+
+    recommendation.action = action
+    recommendation.action_timestamp = datetime.now()
+    db.commit()
+    db.refresh(recommendation)
+    return recommendation
+
+
+def _find_candidates(db: Session, preferences: UserPreferences, location: str) -> list[Restaurant]:
+    if preferences.has_enough_data:
+        places = places_client.search_restaurants(
+            preferences.top_cuisines, location, RECOMMENDATION_COUNT, preferences.price_tier
+        ).places
+    else:
+        places = places_client.search_default_restaurants(location, RECOMMENDATION_COUNT).places
+    # We don't know which cuisine a place matched, so an unlabeled place gets no cuisine
+    return restaurant_service.save_places(db, places, [])
+
 
 def _remove_visited(restaurants: list[Restaurant], visits: list[Visit]) -> list[Restaurant]:
     visited_ids = {v.restaurant_id for v in visits}

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_user_or_404
 from app.dto.preference import UserPreferences
+from app.dto.recommendation import Recommendation, RecommendationAction
 from app.dto.user import User
 from app.dto.visit import VisitCreate, Visit
 from app.models import User as UserModel
@@ -33,3 +34,15 @@ def get_visits(db_user: UserModel = Depends(get_user_or_404), db: Session = Depe
 @router.get("/{user_id}/preferences", response_model=UserPreferences)
 def get_preferences(db_user: UserModel = Depends(get_user_or_404), db: Session = Depends(get_db)):
     return recommend.get_user_preferences(db, db_user.id)
+
+@router.get("/{user_id}/recommendations", response_model=Sequence[Recommendation])
+def get_recommendations(db_user: UserModel = Depends(get_user_or_404), db: Session = Depends(get_db)):
+    return recommend.get_recommendations(db, db_user.id)
+
+@router.post("/{user_id}/recommendations/refresh", response_model=Sequence[Recommendation])
+def refresh_recommendations(location: str, db_user: UserModel = Depends(get_user_or_404), db: Session = Depends(get_db)):
+    return recommend.refresh_recommendations(db, db_user.id, location)
+
+@router.patch("/{user_id}/recommendations/{recommendation_id}", response_model=Recommendation)
+def set_recommendation_action(recommendation_id: int, body: RecommendationAction, db_user: UserModel = Depends(get_user_or_404), db: Session = Depends(get_db)):
+    return recommend.set_recommendation_action(db, db_user.id, recommendation_id, body.action)

@@ -18,6 +18,15 @@ class PriceLevel(str, Enum):
     PRICE_LEVEL_EXPENSIVE = "PRICE_LEVEL_EXPENSIVE"
     PRICE_LEVEL_VERY_EXPENSIVE = "PRICE_LEVEL_VERY_EXPENSIVE"
 
+# Position in the list is the price tier: 0 free ... 4 very expensive
+PRICE_LEVELS_BY_TIER = [
+    PriceLevel.PRICE_LEVEL_FREE,
+    PriceLevel.PRICE_LEVEL_INEXPENSIVE,
+    PriceLevel.PRICE_LEVEL_MODERATE,
+    PriceLevel.PRICE_LEVEL_EXPENSIVE,
+    PriceLevel.PRICE_LEVEL_VERY_EXPENSIVE,
+]
+
 class Location(CamelCaseModel):
     latitude: float
     longitude: float
