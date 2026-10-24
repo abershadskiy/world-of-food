@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
     # Local SQLite file by default. In production this is the Supabase Postgres URL.
     DATABASE_URL: str = "sqlite:///./restaurant_tracker.db"
+    # Where the backend root redirects to
+    UI_URL: str = "http://localhost:5173"
 
     model_config = SettingsConfigDict(
         env_file=".env.local",

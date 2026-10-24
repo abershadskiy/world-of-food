@@ -129,3 +129,9 @@ class TestGoogleLogin:
         monkeypatch.setattr(settings, "GOOGLE_CLIENT_ID", None)
 
         assert client.post("/v1/auth/google", json={"id_token": "t"}).status_code == 503
+
+
+def test_root_redirects_to_ui(client):
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code == 307
+    assert response.headers["location"] == "http://localhost:5173"
