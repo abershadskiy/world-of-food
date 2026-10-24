@@ -10,7 +10,7 @@ class Restaurant(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(index=True)
-    cuisine: Mapped[list[str]] = mapped_column(JSON, index=True)
+    cuisine: Mapped[list[str]] = mapped_column(JSON)
     price_tier: Mapped[Optional[int]]  # e.g. 1 ($) - 4 ($$$$)
     place_id: Mapped[str] = mapped_column(unique=True)
     place_lat: Mapped[float]
